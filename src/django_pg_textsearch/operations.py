@@ -1,3 +1,6 @@
+import warnings
+
+from django.db import ProgrammingError
 from django.db.migrations.operations.base import Operation
 
 
@@ -25,15 +28,27 @@ class CreateExtension(Operation):
             return
 
         schema_clause = f" SCHEMA {self.schema}" if self.schema else ""
-        schema_editor.execute(
-            f"CREATE EXTENSION IF NOT EXISTS {self.name}{schema_clause}"
-        )
+        try:
+            schema_editor.execute(
+                f"CREATE EXTENSION IF NOT EXISTS {self.name}{schema_clause}"
+            )
+        except ProgrammingError as e:
+            # Extension not available on server - warn but don't fail
+            warnings.warn(
+                f"Could not create extension '{self.name}': {e}. "
+                f"Make sure the extension is installed on your PostgreSQL server.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
         if schema_editor.connection.vendor != "postgresql":
             return
 
-        schema_editor.execute(f"DROP EXTENSION IF EXISTS {self.name}")
+        try:
+            schema_editor.execute(f"DROP EXTENSION IF EXISTS {self.name}")
+        except ProgrammingError:
+            pass  # Extension might not exist
 
     def describe(self):
         return f"Create extension {self.name}"

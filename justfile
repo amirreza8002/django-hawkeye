@@ -57,26 +57,26 @@ clean:
 build: clean
     uv build
 
-# Database commands (for local development)
+# Docker commands (for pg_textsearch)
 
-# Set up test database
-db-create:
-    createdb django_pg_textsearch_test || echo "Database may already exist"
+# Build PostgreSQL image with pg_textsearch
+docker-build:
+    docker build -t postgres-pg-textsearch:17 -f .docker/Dockerfile.postgres .
 
-# Drop test database
-db-drop:
-    dropdb django_pg_textsearch_test || echo "Database may not exist"
+# Start PostgreSQL with pg_textsearch
+docker-up:
+    docker compose up -d
+    @echo "Waiting for PostgreSQL to be ready..."
+    @sleep 5
+    docker compose exec postgres psql -U postgres -d django_pg_textsearch_test -c "CREATE EXTENSION IF NOT EXISTS pg_textsearch;"
 
-# Reset test database
-db-reset: db-drop db-create
+# Stop PostgreSQL
+docker-down:
+    docker compose down
 
-# Install PostgreSQL extensions in test database
-db-extensions:
-    psql django_pg_textsearch_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
-    psql django_pg_textsearch_test -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
-
-# Full database setup
-db-setup: db-create db-extensions
+# View PostgreSQL logs
+docker-logs:
+    docker compose logs -f postgres
 
 # Run Django migrations for test models
 migrate:

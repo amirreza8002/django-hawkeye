@@ -6,20 +6,8 @@ Requires PostgreSQL 17+ with pg_textsearch extension.
 import pytest
 from django.db import connection
 
+from django_pg_textsearch import BM25Score
 from tests.models import Article
-
-
-@pytest.fixture(scope="session")
-def check_pg_textsearch(django_db_setup, django_db_blocker):
-    """Check if pg_textsearch extension is available."""
-    with django_db_blocker.unblock():
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_textsearch')"
-            )
-            available = cursor.fetchone()[0]
-            if not available:
-                pytest.skip("pg_textsearch extension not installed")
 
 
 @pytest.mark.django_db
@@ -46,7 +34,6 @@ class TestBM25Search:
             content="Optimizing database queries improves application performance.",
         )
 
-    @pytest.mark.skip(reason="Requires pg_textsearch extension")
     def test_bm25_search_basic(self):
         """Test basic BM25 search."""
         results = Article.objects.bm25_search("postgresql", "content")
@@ -56,28 +43,24 @@ class TestBM25Search:
         first = results.first()
         assert first.bm25_score < 0  # Negative scores
 
-    @pytest.mark.skip(reason="Requires pg_textsearch extension")
     def test_bm25_search_with_limit(self):
         """Test BM25 search with limit."""
         results = Article.objects.bm25_search("database", "content", limit=2)
 
         assert results.count() <= 2
 
-    @pytest.mark.skip(reason="Requires pg_textsearch extension")
     def test_bm25_search_empty_query(self):
         """Test BM25 search with empty query returns nothing."""
         results = Article.objects.bm25_search("", "content")
 
         assert results.count() == 0
 
-    @pytest.mark.skip(reason="Requires pg_textsearch extension")
     def test_bm25_search_no_results(self):
         """Test BM25 search with no matching results."""
         results = Article.objects.bm25_search("nonexistentterm12345", "content")
 
         assert results.count() == 0
 
-    @pytest.mark.skip(reason="Requires pg_textsearch extension")
     def test_bm25_filter_with_threshold(self):
         """Test BM25 filter with threshold."""
         results = Article.objects.bm25_filter(
@@ -104,11 +87,8 @@ class TestBM25Score:
             content="MySQL is another popular database system.",
         )
 
-    @pytest.mark.skip(reason="Requires pg_textsearch extension")
     def test_bm25_score_annotation(self):
         """Test BM25Score annotation."""
-        from django_pg_textsearch import BM25Score
-
         results = Article.objects.annotate(
             score=BM25Score("content", "postgresql")
         ).order_by("score")
@@ -131,3 +111,26 @@ class TestPostgreSQLVersion:
             major_version = version_num // 10000
 
         assert major_version >= 17, f"PostgreSQL {major_version} found, need 17+"
+
+
+@pytest.mark.django_db
+class TestPgTextsearchExtension:
+    """Tests for pg_textsearch extension availability."""
+
+    def test_pg_textsearch_installed(self):
+        """Verify pg_textsearch extension is installed."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_textsearch')"
+            )
+            installed = cursor.fetchone()[0]
+
+        assert installed, "pg_textsearch extension not installed"
+
+    def test_bm25_index_method_exists(self):
+        """Verify bm25 index access method exists."""
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT EXISTS (SELECT 1 FROM pg_am WHERE amname = 'bm25')")
+            exists = cursor.fetchone()[0]
+
+        assert exists, "bm25 index access method not available"

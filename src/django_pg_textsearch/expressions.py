@@ -83,12 +83,14 @@ class BM25Score(Expression):
 
     def as_sql(self, compiler, connection):
         if self.index_name:
+            # Explicit index for WHERE clause usage
             return (
                 f'"{self.field_name}" <@> to_bm25query(%s, %s)',
                 [self.query, self.index_name],
             )
         else:
-            return f'"{self.field_name}" <@> to_bm25query(%s)', [self.query]
+            # Direct syntax - index auto-detected for ORDER BY
+            return f'"{self.field_name}" <@> %s', [self.query]
 
 
 class BM25Match(Expression):

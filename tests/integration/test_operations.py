@@ -1,6 +1,6 @@
 """
 Integration tests for migration operations.
-Requires PostgreSQL 17+.
+Requires PostgreSQL 17+ with pg_textsearch extension.
 """
 
 import pytest
@@ -49,7 +49,6 @@ class TestCreateExtensionOperation:
 class TestPgTextsearchExtension:
     """Tests for pg_textsearch extension."""
 
-    @pytest.mark.skip(reason="pg_textsearch must be installed separately")
     def test_pg_textsearch_available(self):
         """Test pg_textsearch extension is available."""
         with connection.cursor() as cursor:
@@ -60,7 +59,6 @@ class TestPgTextsearchExtension:
 
         assert available, "pg_textsearch extension not available"
 
-    @pytest.mark.skip(reason="pg_textsearch must be installed separately")
     def test_pg_textsearch_installed(self):
         """Test pg_textsearch extension is installed."""
         with connection.cursor() as cursor:
@@ -71,7 +69,6 @@ class TestPgTextsearchExtension:
 
         assert installed, "pg_textsearch extension not installed"
 
-    @pytest.mark.skip(reason="pg_textsearch must be installed separately")
     def test_bm25_index_method_exists(self):
         """Test bm25 index method is available."""
         with connection.cursor() as cursor:
@@ -80,7 +77,6 @@ class TestPgTextsearchExtension:
 
         assert exists, "bm25 index method not available"
 
-    @pytest.mark.skip(reason="pg_textsearch must be installed separately")
     def test_to_bm25query_function_exists(self):
         """Test to_bm25query function exists."""
         with connection.cursor() as cursor:

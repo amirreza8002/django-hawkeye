@@ -67,23 +67,37 @@ jobs:
         django-version: ["5.0", "5.1"]
         python-version: ["3.12"]
 
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: django_pg_textsearch_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Build PostgreSQL with pg_textsearch
+        run: |
+          docker build -t postgres-pg-textsearch:17 -f .docker/Dockerfile.postgres .
+
+      - name: Start PostgreSQL
+        run: |
+          docker run -d \
+            --name postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=django_pg_textsearch_test \
+            -p 5432:5432 \
+            postgres-pg-textsearch:17
+
+          # Wait for PostgreSQL to be ready
+          for i in {1..30}; do
+            if docker exec postgres pg_isready -U postgres; then
+              echo "PostgreSQL is ready"
+              break
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Verify pg_textsearch extension
+        run: |
+          docker exec postgres psql -U postgres -d django_pg_textsearch_test -c "CREATE EXTENSION IF NOT EXISTS pg_textsearch;"
+          docker exec postgres psql -U postgres -d django_pg_textsearch_test -c "SELECT * FROM pg_extension WHERE extname = 'pg_textsearch';"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -104,6 +118,10 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: django_pg_textsearch_test
         run: uv run pytest tests/integration -v
+
+      - name: Stop PostgreSQL
+        if: always()
+        run: docker stop postgres && docker rm postgres
 
   all-tests:
     name: All Tests
