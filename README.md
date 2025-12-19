@@ -100,8 +100,10 @@ BM25Index(
 
 | Method | Description |
 |--------|-------------|
-| `bm25_search(query, field, index_name=None, limit=None)` | Search with BM25 ranking |
-| `bm25_filter(query, field, index_name, threshold=-1.0)` | Filter by score threshold |
+| `bm25_search(query, field, index_name=None, limit=None)` | Rank all documents by BM25 score |
+| `bm25_filter(query, field, index_name, threshold=-1.0)` | Filter to only matching documents |
+
+**Note:** `bm25_search` returns ALL documents ordered by relevance (non-matches get score 0). Use `bm25_filter` with a threshold to exclude non-matching documents, or use `limit` to get only top results.
 
 ### Expressions
 
