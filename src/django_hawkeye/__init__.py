@@ -160,7 +160,7 @@ Migration Operations:
         Manually create BM25 index in migrations.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .checks import get_postgresql_version, is_pg_textsearch_available
 from .expressions import BM25Match, BM25Query, BM25Score
